@@ -174,7 +174,7 @@ func initTelemetry(logger zerolog.Logger) func() {
 	}
 
 	beeline.Init(beeline.Config{
-		Dataset:     serviceName,
+		Dataset:     "urlresolver",
 		ServiceName: serviceName,
 		WriteKey:    apiKey,
 		SampleRate:  4, // submit 25% or 1/4 events
