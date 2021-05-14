@@ -13,8 +13,8 @@ JSON object containing the resolved URL and the resolved title:
     }
 
 If an error occurs during resolution, the response status code will be 203
-Non-Authoritative Information (to indicate partial response) and an additional
-error field will be added and a partial result will be returned, including the
+Non-Authoritative Information (to indicate partial response), an additional
+error field will be added, and a partial result will be returned, including the
 canonicalized and potentially partially-resolved URL:
 
     $ curl -s localhost:8080/resolve?url=https://i-do-not-exist.xyz?utm_tag=tracking-code | jq .
@@ -38,8 +38,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/honeycombio/beeline-go"
-	"github.com/rs/zerolog/hlog"
+	"github.com/peterbourgon/ctxdata/v4"
 
 	"github.com/mccutchen/urlresolver"
 	"github.com/mccutchen/urlresolver/safedialer"
@@ -47,6 +46,8 @@ import (
 
 // Errors that might be returned by the HTTP handler.
 var (
+	ErrInvalidURL     = errors.New("invalid arg url")
+	ErrMissingURL     = errors.New("missing arg url")
 	ErrRequestTimeout = errors.New("request timeout")
 	ErrResolveError   = errors.New("resolve error")
 	ErrUnsafeURL      = errors.New("unsafe URL")
@@ -82,15 +83,16 @@ var _ http.Handler = &Handler{} // Handler implements http.Handler
 
 func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
+	d := ctxdata.From(ctx)
 
 	givenURL := r.URL.Query().Get("url")
 	if givenURL == "" {
-		beeline.AddField(ctx, "error", "missing_arg_url")
+		_ = d.Set("error", ErrMissingURL)
 		sendError(w, "Missing arg url", http.StatusBadRequest)
 		return
 	}
 	if !isValidInput(givenURL) {
-		beeline.AddField(ctx, "error", "invalid_url")
+		_ = d.Set("error", fmt.Errorf("%w: %s", ErrInvalidURL, givenURL))
 		sendError(w, "Invalid url", http.StatusBadRequest)
 		return
 	}
@@ -111,10 +113,11 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	code := http.StatusOK
 
 	if err != nil {
+		d := ctxdata.From(r.Context())
+
 		// Special case when client closed connection, no need to respond
 		if errors.Is(err, context.Canceled) {
-			beeline.AddField(ctx, "error", "client closed connection")
-			hlog.FromRequest(r).Error().Err(err).Str("url", givenURL).Msg("client closed connection")
+			_ = d.Set("error", fmt.Errorf("client closed connection: %w", err))
 			// Use non-standard 499 Client Closed Request status for our own
 			// instrumentation purposes (https://httpstatuses.com/499)
 			w.WriteHeader(499)
@@ -122,8 +125,7 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 
 		// Record the real error
-		beeline.AddField(ctx, "error", err.Error())
-		hlog.FromRequest(r).Error().Err(err).Str("url", givenURL).Msg("error resolving url")
+		_ = d.Set("error", fmt.Errorf("error resolving url: %w", err))
 
 		// A slight abuse of 203 Non-Authoritative Information to indicate a
 		// partial result. See https://httpstatuses.com/203.
