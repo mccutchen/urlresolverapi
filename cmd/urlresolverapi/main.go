@@ -4,6 +4,7 @@ import (
 	"context"
 	"net"
 	"net/http"
+	_ "net/http/pprof"
 	"os"
 	"os/signal"
 	"syscall"
@@ -56,6 +57,10 @@ const (
 
 	// redis timeout
 	redisTimeout = 150 * time.Millisecond
+
+	// pprof listener will be exposed on this address, which should not be
+	// available on the public internet
+	pprofAddr = ":6060"
 )
 
 func main() {
@@ -72,6 +77,16 @@ func main() {
 	if port == "" {
 		port = defaultPort
 	}
+
+	// Spin up the default mux to expose pprof endpoints on an internal-only
+	// port. Use `flyctl wg` to create a wireguard tunnel that will allow
+	// direct access to these pprof endpoints.
+	//
+	// E.g. go tool pprof urlresolverapi-production.internal:6060/debug/pprof/allocs
+	go func() {
+		logger.Info().Msgf("pprof listening on %s", pprofAddr)
+		http.ListenAndServe(pprofAddr, nil)
+	}()
 
 	srv := &http.Server{
 		Addr:         net.JoinHostPort("", port),
