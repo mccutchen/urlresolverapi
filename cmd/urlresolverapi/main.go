@@ -59,9 +59,8 @@ const (
 )
 
 func main() {
-	logger := zerolog.New(os.Stderr).With().Timestamp().Logger()
-	stopTelemetry := initTelemetry(logger)
-	defer stopTelemetry()
+	logger, cleanup := initTelemetry()
+	defer cleanup()
 
 	resolver := initResolver(logger)
 	handler := httphandler.New(resolver)
@@ -159,15 +158,17 @@ func initRedisCache(logger zerolog.Logger) *cache.Cache {
 	return cache.New(&cache.Options{Redis: redis.NewClient(opt)})
 }
 
-func initTelemetry(logger zerolog.Logger) func() {
+func initTelemetry() (zerolog.Logger, func()) {
 	var (
 		apiKey      = os.Getenv("HONEYCOMB_API_KEY")
 		serviceName = os.Getenv("FLY_APP_NAME")
 	)
 
+	logger := zerolog.New(os.Stderr).With().Timestamp().Logger()
+
 	if apiKey == "" {
 		logger.Info().Msg("set HONEYCOMB_API_KEY to capture telemetry")
-		return func() {}
+		return logger, func() {}
 	}
 	if serviceName == "" {
 		serviceName = "urlresolver"
@@ -179,5 +180,5 @@ func initTelemetry(logger zerolog.Logger) func() {
 		WriteKey:    apiKey,
 		SampleRate:  4, // submit 25% or 1/4 events
 	})
-	return beeline.Close
+	return logger, beeline.Close
 }
