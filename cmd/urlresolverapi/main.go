@@ -85,8 +85,10 @@ func main() {
 	//
 	// E.g. go tool pprof urlresolverapi-production.internal:6060/debug/pprof/allocs
 	go func() {
-		logger.Info().Msgf("pprof listening on %s", pprofAddr)
-		http.ListenAndServe(pprofAddr, nil)
+		logger.Info().Msgf("debug endpoints available on %s", pprofAddr)
+		if err := http.ListenAndServe(pprofAddr, nil); err != http.ErrServerClosed {
+			logger.Error().Msgf("error serving debug endpoints: %s", err)
+		}
 	}()
 
 	srv := &http.Server{
