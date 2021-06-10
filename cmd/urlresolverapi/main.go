@@ -2,9 +2,10 @@ package main
 
 import (
 	"context"
+	_ "expvar" // register expvar w/ default handler, only exposed over private network
 	"net"
 	"net/http"
-	_ "net/http/pprof"
+	_ "net/http/pprof" // register pprof endpoints w/ default handler, only exposed over private network
 	"os"
 	"os/signal"
 	"syscall"
@@ -78,14 +79,16 @@ func main() {
 		port = defaultPort
 	}
 
-	// Spin up the default mux to expose pprof endpoints on an internal-only
-	// port. Use `flyctl wg` to create a wireguard tunnel that will allow
-	// direct access to these pprof endpoints.
+	// Spin up the default mux to expose expvar and pprof endpoints on an
+	// internal-only port. Use `flyctl wg` to create a wireguard tunnel that
+	// will allow direct access to these pprof endpoints.
 	//
 	// E.g. go tool pprof urlresolverapi-production.internal:6060/debug/pprof/allocs
 	go func() {
-		logger.Info().Msgf("pprof listening on %s", pprofAddr)
-		http.ListenAndServe(pprofAddr, nil)
+		logger.Info().Msgf("debug endpoints available on %s", pprofAddr)
+		if err := http.ListenAndServe(pprofAddr, nil); err != http.ErrServerClosed {
+			logger.Error().Msgf("error serving debug endpoints: %s", err)
+		}
 	}()
 
 	srv := &http.Server{

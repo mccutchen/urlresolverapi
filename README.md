@@ -19,7 +19,38 @@ There is a single API endpoint:
 GET /resolve?url=<url>
 ```
 
+## Profiling notes
+
+The app exposes Go's [expvar][] and [net/http/pprof][pprof] endpoints on port
+`6060`, which should not be exposed to the outside world.
+
+When deployed on [fly.io], you can access those endpoints via a secure
+WireGuard VPN connection.  First, follow their [Private Network VPN setup guide][vpn].
+
+With that VPN enabled, you can now access the internal endpoints by hostname
+(which will connect to 1/N instances of the app):
+
+```
+go tool pprof appname.internal:6060/debug/pprof/allocs
+```
+
+Or you can connect to a specific instance by first getting its private IPv6
+address and then connecting directly to it:
+
+```
+$ dig +short aaaa appname.internal
+fdaa:0:2530:a7b:ab2:5f9e:d6b1:2
+fdaa:0:2530:a7b:ab3:97d6:9ae8:2
+
+$ go tool pprof '[fdaa:0:2530:a7b:ab2:5f9e:d6b1:2]:6060/debug/pprof/allocs'
+```
+
+
 [pkg]: https://github.com/mccutchen/urlresolver
 [Thresholderbot]: https://thresholderbot.com/
 [purell]: https://github.com/PuerkitoBio/purell
 [blog]: https://www.agwa.name/blog/post/preventing_server_side_request_forgery_in_golangs
+[expvar]: https://golang.org/pkg/expvar/
+[pprof]: https://golang.org/pkg/net/http/pprof/
+[fly.io]: https://fly.io/
+[vpn]: https://fly.io/docs/reference/privatenetwork/#private-network-vpn
