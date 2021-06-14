@@ -10,6 +10,7 @@ require (
 	github.com/honeycombio/beeline-go v1.1.0
 	github.com/mccutchen/urlresolver v0.1.1
 	github.com/peterbourgon/ctxdata/v4 v4.0.0
+	github.com/peterbourgon/ff/v3 v3.0.0
 	github.com/rs/zerolog v1.21.0
 	github.com/stretchr/testify v1.7.0
 	golang.org/x/net v0.0.0-20210610132358-84b48f89b13b // indirect

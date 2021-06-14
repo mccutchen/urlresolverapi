@@ -6,6 +6,8 @@ kill_signal = "SIGINT"
 kill_timeout = 5
 
 [env]
+  HONEYCOMB_DATASET = "urlresolver"
+  HONEYCOMB_SAMPLE_RATE = "4" # 1/4 events will be submitted
 
 [experimental]
   auto_rollback = true
