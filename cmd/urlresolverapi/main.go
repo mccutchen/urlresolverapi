@@ -3,17 +3,20 @@ package main
 import (
 	"context"
 	_ "expvar" // register expvar w/ default handler, only exposed over private network
+	"flag"
 	"net"
 	"net/http"
 	_ "net/http/pprof" // register pprof endpoints w/ default handler, only exposed over private network
 	"os"
 	"os/signal"
+	"strconv"
 	"syscall"
 	"time"
 
 	"github.com/go-redis/cache/v8"
 	"github.com/go-redis/redis/v8"
 	beeline "github.com/honeycombio/beeline-go"
+	"github.com/peterbourgon/ff/v3"
 	"github.com/rs/zerolog"
 
 	"github.com/mccutchen/urlresolver"
@@ -25,74 +28,120 @@ import (
 	"github.com/mccutchen/urlresolverapi/pkg/tracetransport"
 )
 
-const (
-	cacheTTL    = 120 * time.Hour
-	defaultPort = "8080"
-
-	// How long we will wait for a client to write its request or read our
-	// response.
-	clientPatience = 2 * time.Second
-
-	// requestTimeout sets an overall timeout on a single resolve request,
-	// including any redirects that must be followed and any time spent in DNS
-	// lookup, tcp connect, tls handshake, etc.
-	requestTimeout = 10 * time.Second
-
-	// shutdownTimeout is just a bit longer than we expect the longest
-	// individual request we're handling to take.
-	shutdownTimeout = requestTimeout + clientPatience
-
-	// dialTimeout determines how long we'll wait to make a connection to a
-	// remote host.
-	dialTimeout = 2 * time.Second
-
-	// server timeouts prevent slow/malicious clients from occupying resources
-	// for too long.
-	serverReadTimeout  = clientPatience
-	serverWriteTimeout = requestTimeout + clientPatience
-
-	// configure our http client to reuse connections somewhat aggressively.s
-	transportIdleConnTimeout     = 90 * time.Second
-	transportMaxIdleConnsPerHost = 100
-	transportTLSHandshakeTimeout = 2 * time.Second
-
-	// redis timeout
-	redisTimeout = 150 * time.Millisecond
-
-	// pprof listener will be exposed on this address, which should not be
-	// available on the public internet
-	pprofAddr = ":6060"
-)
-
 func main() {
-	logger, cleanup := initTelemetry()
-	defer cleanup()
+	logger := zerolog.New(os.Stderr).With().Timestamp().Logger()
 
-	resolver := initResolver(logger)
-	handler := httphandler.New(resolver)
-
-	mux := http.NewServeMux()
-	mux.Handle("/resolve", handler)
-
-	port := os.Getenv("PORT")
-	if port == "" {
-		port = defaultPort
+	// Rewrite some platform-specific env vars before parsing configuration
+	envRewrites := map[string]string{
+		"FLY_REDIS_CACHE_URL": "REDIS_URL",
+		"FLY_APP_NAME":        "HONEYCOMB_SERVICE_NAME",
+	}
+	for srcKey, dstKey := range envRewrites {
+		if os.Getenv(srcKey) != "" && os.Getenv(dstKey) == "" {
+			os.Setenv(dstKey, os.Getenv(srcKey))
+		}
 	}
 
-	// Spin up the default mux to expose expvar and pprof endpoints on an
-	// internal-only port. Use `flyctl wg` to create a wireguard tunnel that
-	// will allow direct access to these pprof endpoints.
-	//
-	// E.g. go tool pprof urlresolverapi-production.internal:6060/debug/pprof/allocs
-	go func() {
-		logger.Info().Msgf("debug endpoints available on %s", pprofAddr)
-		if err := http.ListenAndServe(pprofAddr, nil); err != http.ErrServerClosed {
-			logger.Error().Msgf("error serving debug endpoints: %s", err)
+	fs := flag.NewFlagSet("urlresolverapi", flag.ExitOnError)
+	var (
+		port      = fs.Int("port", 8080, "Port to listen on")
+		debugPort = fs.Int("debug-port", 6060, "Port to expose pprof/expvar debugging endpoints on")
+
+		requestTimeout = fs.Duration("request-timeout", 10*time.Second, "Overall timeout on a single resolve request, including any redirects")
+		clientPatience = fs.Duration("client-patience", 1*time.Second, "How long to wait for slow clients to write requests or read responses")
+
+		redisURL     = fs.String("redis-url", "", "Redis connection URL (enables caching)")
+		redisTimeout = fs.Duration("redis-timeout", 150*time.Millisecond, "Timeout for redis operations (if caching enabled)")
+		cacheTTL     = fs.Duration("cache-ttl", 120*time.Hour, "TTL for cached results (if caching enabled)")
+
+		honeycombAPIKey      = fs.String("honeycomb-api-key", "", "Honeycomb API key (enables sending telemetry data to honeycomb)")
+		honeycombDataset     = fs.String("honeycomb-dataset", "urlresolverapi", "Honeycomb dataset for telemetry data")
+		honeycombServiceName = fs.String("honeycomb-service-name", "urlresolverapi", "Service name for telemetry data") // TODO: stop relying on fly.io specifics
+		honeycombSampleRate  = fs.Uint("honeycomb-sample-rate", 1, "Sample rate for telemetry data (1/N events will be submitted)")
+
+		transportIdleConnTTL         = fs.Duration("idle-cx-ttl", 90*time.Second, "TTL for idle connections")
+		transportMaxIdleConnsPerHost = fs.Int("max-idle-cx-per-host", 10, "Max idle connections per host")
+	)
+	if err := ff.Parse(fs, os.Args[1:], ff.WithEnvVarNoPrefix()); err != nil {
+		logger.Fatal().Msgf("error parsing configuration: %s", err)
+	}
+
+	var (
+		shutdownTimeout    = *requestTimeout + *clientPatience
+		serverReadTimeout  = *clientPatience
+		serverWriteTimeout = shutdownTimeout
+	)
+
+	// set up optional telemetry
+	if *honeycombAPIKey != "" {
+		beeline.Init(beeline.Config{
+			Dataset:     *honeycombDataset,
+			ServiceName: *honeycombServiceName,
+			WriteKey:    *honeycombAPIKey,
+			SampleRate:  *honeycombSampleRate,
+		})
+		defer beeline.Close()
+	} else {
+		logger.Info().Msg("set HONEYCOMB_API_KEY to capture telemetry")
+	}
+
+	// set up transport used by resolver
+	transport := fakebrowser.New(tracetransport.New(&http.Transport{
+		DialContext: (&net.Dialer{
+			Control: safedialer.Control,
+		}).DialContext,
+		IdleConnTimeout:     *transportIdleConnTTL,
+		MaxIdleConnsPerHost: *transportMaxIdleConnsPerHost,
+		MaxIdleConns:        *transportMaxIdleConnsPerHost * 2,
+	}))
+
+	// set up resolver
+	var resolver urlresolver.Interface = urlresolver.New(transport, *requestTimeout)
+
+	// wrap resolver in a redis cache, if caching is enabled
+	if *redisURL != "" {
+		// set up optional redis cache
+		opt, err := redis.ParseURL(*redisURL)
+		if err == nil {
+			opt.DialTimeout = *redisTimeout * 2
+			opt.ReadTimeout = *redisTimeout
+			opt.WriteTimeout = *redisTimeout
+			redisCache := cache.New(&cache.Options{Redis: redis.NewClient(opt)})
+			resolver = cachedresolver.NewCachedResolver(resolver, cachedresolver.NewRedisCache(redisCache, *cacheTTL))
+		} else {
+			logger.Error().Err(err).Msg("REDIS_URL invalid, cache disabled")
 		}
-	}()
+	} else {
+		logger.Info().Msg("set REDIS_URL to enable caching")
+	}
+
+	mux := http.NewServeMux()
+	mux.Handle("/resolve", httphandler.New(resolver))
+
+	if *debugPort != 0 {
+		// Use the default mux to expose expvar and pprof endpoints on an
+		// internal-only port.
+		//
+		// If deployed on fly.io, use `flyctl wg` to create a wireguard tunnel that
+		// will allow direct access to these pprof endpoints, via something like:
+		//
+		//     go tool pprof <app>.internal:6060/debug/pprof/allocs
+		//
+		// See fly.io's Private Networking docs for more context:
+		// https://fly.io/docs/reference/privatenetwork/#private-network-vpn
+		go func() {
+			debugAddr := net.JoinHostPort("", strconv.Itoa(*debugPort))
+			logger.Info().Msgf("debug endpoints available on %s", debugAddr)
+			if err := http.ListenAndServe(debugAddr, nil); err != http.ErrServerClosed {
+				logger.Error().Msgf("error serving debug endpoints: %s", err)
+			}
+		}()
+	} else {
+		logger.Info().Msg("set DEBUG_PORT to enable internal debug endpoints")
+	}
 
 	srv := &http.Server{
-		Addr:         net.JoinHostPort("", port),
+		Addr:         net.JoinHostPort("", strconv.Itoa(*port)),
 		Handler:      middleware.Wrap(mux, logger),
 		ReadTimeout:  serverReadTimeout,
 		WriteTimeout: serverWriteTimeout,
@@ -132,71 +181,4 @@ func listenAndServeGracefully(srv *http.Server, shutdownTimeout time.Duration, l
 
 	// wait until it is safe to exit
 	<-exitCh
-}
-
-func initResolver(logger zerolog.Logger) urlresolver.Interface {
-	transport := fakebrowser.New(tracetransport.New(&http.Transport{
-		DialContext: (&net.Dialer{
-			Control: safedialer.Control,
-			Timeout: dialTimeout,
-		}).DialContext,
-		IdleConnTimeout:     transportIdleConnTimeout,
-		MaxIdleConnsPerHost: transportMaxIdleConnsPerHost,
-		MaxIdleConns:        transportMaxIdleConnsPerHost * 2,
-		TLSHandshakeTimeout: transportTLSHandshakeTimeout,
-	}))
-
-	var r urlresolver.Interface = urlresolver.New(transport, requestTimeout)
-
-	// Wrap resolver with a redis cache if we successfully connect to redis
-	if redisCache := initRedisCache(logger); redisCache != nil {
-		r = cachedresolver.NewCachedResolver(r, cachedresolver.NewRedisCache(redisCache, cacheTTL))
-	}
-
-	return r
-}
-
-func initRedisCache(logger zerolog.Logger) *cache.Cache {
-	redisURL := os.Getenv("FLY_REDIS_CACHE_URL")
-	if redisURL == "" {
-		logger.Info().Msg("set FLY_REDIS_CACHE_URL to enable caching")
-		return nil
-	}
-
-	opt, err := redis.ParseURL(redisURL)
-	if err != nil {
-		logger.Error().Err(err).Msg("FLY_REDIS_CACHE_URL invalid, cache disabled")
-		return nil
-	}
-
-	opt.DialTimeout = 2 * redisTimeout
-	opt.ReadTimeout = redisTimeout
-	opt.WriteTimeout = redisTimeout
-
-	return cache.New(&cache.Options{Redis: redis.NewClient(opt)})
-}
-
-func initTelemetry() (zerolog.Logger, func()) {
-	var (
-		apiKey      = os.Getenv("HONEYCOMB_API_KEY")
-		serviceName = os.Getenv("FLY_APP_NAME")
-	)
-
-	logger := zerolog.New(os.Stderr).With().Timestamp().Logger()
-
-	if apiKey == "" {
-		logger.Info().Msg("set HONEYCOMB_API_KEY to capture telemetry")
-		return logger, func() {}
-	}
-	if serviceName == "" {
-		serviceName = "urlresolver"
-	}
-
-	beeline.Init(beeline.Config{
-		Dataset:     "urlresolver",
-		ServiceName: serviceName,
-		WriteKey:    apiKey,
-		SampleRate:  4, // submit 25% or 1/4 events
-	})
-	return logger, beeline.Close
 }
