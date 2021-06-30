@@ -12,7 +12,10 @@ import (
 	"github.com/rs/zerolog"
 )
 
-func Wrap(h http.Handler, l zerolog.Logger) http.Handler {
+func Wrap(h http.Handler, rlc RateLimitConfig, l zerolog.Logger) http.Handler {
+	if rlc.Limiter != nil {
+		h = rateLimitHandler(rlc.AuthTokens, rlc.Limiter, h)
+	}
 	h = panicHandler(h)
 	h = observeHandler(h, l)
 	h = hnynethttp.WrapHandler(h)

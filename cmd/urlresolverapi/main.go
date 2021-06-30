@@ -10,6 +10,7 @@ import (
 	"os"
 	"os/signal"
 	"strconv"
+	"strings"
 	"syscall"
 	"time"
 
@@ -18,6 +19,7 @@ import (
 	beeline "github.com/honeycombio/beeline-go"
 	"github.com/peterbourgon/ff/v3"
 	"github.com/rs/zerolog"
+	"golang.org/x/time/rate"
 
 	"github.com/mccutchen/urlresolver"
 	"github.com/mccutchen/urlresolver/fakebrowser"
@@ -46,6 +48,10 @@ func main() {
 	var (
 		port      = fs.Int("port", 8080, "Port to listen on")
 		debugPort = fs.Int("debug-port", 6060, "Port to expose pprof/expvar debugging endpoints on")
+
+		authTokens = fs.String("auth-tokens", "", "Comma-separated list of valid auth tokens for which rate limiting is disabled")
+		rateLimit  = fs.Float64("rate-limit", 0, "Per-second rate limit for anonymous clients (disabled if <= 0)")
+		burstLimit = fs.Int("burst-limit", 2, "Allowed bursts over rate limit (if rate limit >= 0)")
 
 		requestTimeout = fs.Duration("request-timeout", 10*time.Second, "Overall timeout on a single resolve request, including any redirects")
 		clientPatience = fs.Duration("client-patience", 1*time.Second, "How long to wait for slow clients to write requests or read responses")
@@ -135,12 +141,21 @@ func main() {
 		logger.Info().Msg("set REDIS_URL to enable caching")
 	}
 
+	// configure optional rate limiting
+	var rlc middleware.RateLimitConfig
+	if *rateLimit > 0.0 {
+		rlc.AuthTokens = strings.Split(*authTokens, ",")
+		rlc.Limiter = rate.NewLimiter(rate.Limit(*rateLimit), *burstLimit)
+	} else {
+		logger.Info().Msg("set RATE_LIMIT to a positive number to enable rate limiting")
+	}
+
 	mux := http.NewServeMux()
 	mux.Handle("/resolve", httphandler.New(resolver))
 
 	srv := &http.Server{
 		Addr:         net.JoinHostPort("", strconv.Itoa(*port)),
-		Handler:      middleware.Wrap(mux, logger),
+		Handler:      middleware.Wrap(mux, rlc, logger),
 		ReadTimeout:  serverReadTimeout,
 		WriteTimeout: serverWriteTimeout,
 	}

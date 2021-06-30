@@ -87,6 +87,10 @@ deploy:
 	$(FLY_CMD) deploy --strategy=bluegreen $(shell ./bin/env-to-fly < fly.$(env).env)
 .PHONY: deploy
 
+authtoken:
+	@python3 -c 'import secrets; print(secrets.token_urlsafe())'
+.PHONY: authtoken
+
 # =============================================================================
 # dependencies
 #
