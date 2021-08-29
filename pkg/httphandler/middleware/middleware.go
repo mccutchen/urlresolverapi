@@ -31,6 +31,7 @@ func observeHandler(next http.Handler, l zerolog.Logger) http.Handler {
 			Size:       m.Written,
 			Status:     m.Code,
 			URL:        r.URL.String(),
+			UserAgent:  r.Header.Get("User-Agent"),
 		}
 		if err := d.GetError("error"); err != nil {
 			rec.Error = err.Error()
@@ -84,6 +85,7 @@ type logRecord struct {
 	Size       int64  `json:"size"`
 	Status     int    `json:"status"`
 	URL        string `json:"url"`
+	UserAgent  string `json:"user_agent"`
 
 	// Only added when an error and/or a panic occurs
 	Error string `json:"error,omitempty"`
@@ -97,6 +99,7 @@ func (rec logRecord) MarshalZerologObject(e *zerolog.Event) {
 	e.Str("method", rec.Method)
 	e.Str("remote_addr", rec.RemoteAddr)
 	e.Str("url", rec.URL)
+	e.Str("user_agent", rec.UserAgent)
 	if rec.Error != "" {
 		e.Str("error", rec.Error)
 		if rec.Stack != "" {
