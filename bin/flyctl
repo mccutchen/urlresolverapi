@@ -1,0 +1,61 @@
+#!/usr/bin/env python3
+
+import glob
+import os
+import sys
+
+
+def main(target_env, flyctl_args):
+    cmd_env = os.environ.copy()
+    cmd_env["FLY_APP"] = f"urlresolverapi-{target_env}"
+    flyctl_cmd = ["flyctl"] + flyctl_args
+    os.execvpe("flyctl", flyctl_cmd, cmd_env)
+
+
+def print_usage(valid_envs):
+    cmd = sys.argv[0]
+    print(
+        f"""Usage: {cmd} ENV FLYCTL_ARGS
+
+Valid environments:
+
+    {", ".join(valid_envs)}
+
+Examples:
+
+    {cmd} production logs -i abcd1234
+    {cmd} production deploy --strategy=bluegreen
+""",
+        file=sys.stderr,
+    )
+
+
+def list_envs():
+    envs = []
+    for path in glob.glob("fly.*.env"):
+        _, env, _ = path.split(".")
+        envs.append(env)
+    return envs
+
+
+if __name__ == "__main__":
+    valid_envs = list_envs()
+
+    if len(sys.argv) < 2 or sys.argv[1] in ("-h", "--help"):
+        print_usage(valid_envs)
+        sys.exit(1)
+
+    target_env = sys.argv[1]
+    if target_env not in valid_envs:
+        print(
+            f"Error: {target_env} is not a valid environment. Valid environments: {', '.join(valid_envs)}",
+            file=sys.stderr,
+        )
+        sys.exit(1)
+
+    if len(sys.argv) == 2:
+        print("Error: missing flyctl args.", file=sys.stderr)
+        sys.exit(1)
+
+    flyctl_args = sys.argv[2:]
+    main(target_env, flyctl_args)

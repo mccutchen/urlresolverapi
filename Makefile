@@ -1,5 +1,9 @@
 VERSION ?= $(shell git rev-parse --short HEAD)
 
+# fly.io deployment parameters
+env     ?= UNSET
+FLY_CMD := ./bin/flyctl $(env)
+
 # Built binaries will be placed here
 DIST_PATH	?= dist
 BUILD_ARGS	?= -ldflags="-s -w"
@@ -80,7 +84,7 @@ rundocker: buildimage
 # deploy to fly.io
 # =============================================================================
 deploy:
-	flyctl deploy --strategy=bluegreen
+	$(FLY_CMD) deploy --strategy=bluegreen $(shell ./bin/env-to-fly < fly.$(env).env)
 .PHONY: deploy
 
 # =============================================================================
