@@ -72,6 +72,28 @@ func main() {
 		serverWriteTimeout = shutdownTimeout
 	)
 
+	if *debugPort != 0 {
+		// Use the default mux to expose expvar and pprof endpoints on an
+		// internal-only port.
+		//
+		// If deployed on fly.io, use `flyctl wg` to create a wireguard tunnel that
+		// will allow direct access to these pprof endpoints, via something like:
+		//
+		//     go tool pprof <app>.internal:6060/debug/pprof/allocs
+		//
+		// See fly.io's Private Networking docs for more context:
+		// https://fly.io/docs/reference/privatenetwork/#private-network-vpn
+		go func() {
+			debugAddr := net.JoinHostPort("", strconv.Itoa(*debugPort))
+			logger.Info().Msgf("debug endpoints available on %s", debugAddr)
+			if err := http.ListenAndServe(debugAddr, nil); err != http.ErrServerClosed {
+				logger.Error().Msgf("error serving debug endpoints: %s", err)
+			}
+		}()
+	} else {
+		logger.Info().Msg("set DEBUG_PORT to enable internal debug endpoints")
+	}
+
 	// set up optional telemetry
 	if *honeycombAPIKey != "" {
 		beeline.Init(beeline.Config{
@@ -95,10 +117,8 @@ func main() {
 		MaxIdleConns:        *transportMaxIdleConnsPerHost * 2,
 	}))
 
-	// set up resolver
+	// set up resolver w/ optional redis caching
 	var resolver urlresolver.Interface = urlresolver.New(transport, *requestTimeout)
-
-	// wrap resolver in a redis cache, if caching is enabled
 	if *redisURL != "" {
 		// set up optional redis cache
 		opt, err := redis.ParseURL(*redisURL)
@@ -117,28 +137,6 @@ func main() {
 
 	mux := http.NewServeMux()
 	mux.Handle("/resolve", httphandler.New(resolver))
-
-	if *debugPort != 0 {
-		// Use the default mux to expose expvar and pprof endpoints on an
-		// internal-only port.
-		//
-		// If deployed on fly.io, use `flyctl wg` to create a wireguard tunnel that
-		// will allow direct access to these pprof endpoints, via something like:
-		//
-		//     go tool pprof <app>.internal:6060/debug/pprof/allocs
-		//
-		// See fly.io's Private Networking docs for more context:
-		// https://fly.io/docs/reference/privatenetwork/#private-network-vpn
-		go func() {
-			debugAddr := net.JoinHostPort("", strconv.Itoa(*debugPort))
-			logger.Info().Msgf("debug endpoints available on %s", debugAddr)
-			if err := http.ListenAndServe(debugAddr, nil); err != http.ErrServerClosed {
-				logger.Error().Msgf("error serving debug endpoints: %s", err)
-			}
-		}()
-	} else {
-		logger.Info().Msg("set DEBUG_PORT to enable internal debug endpoints")
-	}
 
 	srv := &http.Server{
 		Addr:         net.JoinHostPort("", strconv.Itoa(*port)),
