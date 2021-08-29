@@ -3,6 +3,7 @@ package middleware
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 	"strings"
 
@@ -32,8 +33,9 @@ func rateLimitHandler(authTokens []string, rateLimiter *rate.Limiter, next http.
 		}
 
 		if !rateLimiter.Allow() {
-			sendRateLimitError(w, rateLimiter)
-			return
+			log.Printf("ratelimit: dry run: would deny request from %s %#v", getRemoteAddr(r), r.Header)
+			// sendRateLimitError(w, rateLimiter)
+			// return
 		}
 
 		next.ServeHTTP(w, r)
