@@ -13,11 +13,28 @@ be wrapped in one or more URL shorteners (t.co, bit.ly, etc).
 
 ## API
 
-There is a single API endpoint:
+There is a single API endpoint, `/resolve`, seen here resolving a t.co URL that redirects a
+few times before ending up at the New York Times:
 
 ```
-GET /resolve?url=<url>
+GET /resolve?url=https://t.co/1AuEh8FMK0?amp=1
+
+{
+  "given_url": "https://t.co/1AuEh8FMK0?amp=1",
+  "resolved_url": "https://www.nytimes.com/2021/08/25/style/lil-nas-x.html",
+  "title": "Some Said Lil Nas X Was a One-Hit Wonder. They Were Wrong. - The New York Times"
+}
 ```
+
+A `200 OK` status code means that the API successfully resolved the URL and
+extracted a title.
+
+A `203 Non-Authoritative Information` status code means that the API ran into
+an error while resolving the URL and/or extracting a title (e.g. a request
+timeout). In this case, the API returns as much information as it can; it will
+at least return a normalized/canonicalized and potentially partially-resolved
+`resolved_url` value.
+
 
 ## Profiling notes
 
