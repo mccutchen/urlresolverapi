@@ -7,10 +7,10 @@ import sys
 def main():
     decls = []
     for line in fileinput.input():
-        line = line.strip()
+        line = line.strip().split("#")[0]
         if not line:
             continue
-        decls.append(line.split("#")[0])
+        decls.append(line)
     if not decls:
         return 0
     print(" -e ".join([""] + decls).strip())
