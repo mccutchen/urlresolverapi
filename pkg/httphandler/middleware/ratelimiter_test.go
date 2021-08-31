@@ -22,34 +22,20 @@ func TestRateLimiter(t *testing.T) {
 		headers    map[string]string
 		wantStatus int
 	}{
-		"valid api key not rate limited": {
+		"valid auth token not rate limited": {
 			headers:    map[string]string{"Authorization": "Token valid-token"},
+			rl:         newLimiter(0, 0), // would reject request unless rate limiting explicitly skipped
 			wantStatus: http.StatusCreated,
 		},
-		"auth token type is case insensitive": {
-			headers:    map[string]string{"Authorization": "tOkEn valid-token"},
+		"nil rate limiter skips rate limiting": {
+			rl:         nil,
 			wantStatus: http.StatusCreated,
 		},
-		"invalid api key rate limited": {
-			headers:    map[string]string{"Authorization": "Token zzz-invalid-token"},
-			rl:         newLimiter(0, 0),
-			wantStatus: http.StatusTooManyRequests,
-		},
-		"unknown auth token type rate limited": {
-			headers:    map[string]string{"Authorization": "Foo valid-token"},
-			rl:         newLimiter(0, 0),
-			wantStatus: http.StatusTooManyRequests,
-		},
-		"invalid auth token format rate limited": {
-			headers:    map[string]string{"Authorization": "Token abc 123"},
-			rl:         newLimiter(0, 0),
-			wantStatus: http.StatusTooManyRequests,
-		},
-		"rate limit ok": {
+		"anonymous request rate limit ok": {
 			rl:         newLimiter(1, 1),
 			wantStatus: http.StatusCreated,
 		},
-		"rate limit exceeded": {
+		"anonymous request rate limit exceeded": {
 			rl:         newLimiter(0, 0),
 			wantStatus: http.StatusTooManyRequests,
 		},
@@ -60,7 +46,12 @@ func TestRateLimiter(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 
-			srv := httptest.NewServer(rateLimitHandler(authTokens, tc.rl, handler))
+			srv := httptest.NewServer(
+				authHandler(
+					rateLimitHandler(handler, tc.rl),
+					authTokens,
+				),
+			)
 
 			req, err := http.NewRequest("GET", srv.URL, nil)
 			assert.Nil(t, err)

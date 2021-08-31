@@ -1,83 +1,51 @@
 package middleware
 
 import (
-	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
-	"strings"
 
 	"github.com/honeycombio/beeline-go"
 	"golang.org/x/time/rate"
 )
 
-// RateLimitConfig contains the information necessary to configure rate
-// limiting.
-type RateLimitConfig struct {
-	// AuthTokens defines the set of valid auth tokens for which no rate
-	// limiting will be applied.
-	AuthTokens []string
+var (
+	errInvalidAuthHeaderFormat = errors.New("INVALID_AUTH_HEADER_FORMAT")
+	errInvalidAuthTokenFormat  = errors.New("INVALID_AUTH_TOKEN_FORMAT")
+	errInvalidAuthToken        = errors.New("INVALID_AUTH_TOKEN")
+)
 
-	// Limiter is a rate limiter configure with an appropriate limit and burst.
-	Limiter *rate.Limiter
-}
-
-func rateLimitHandler(authTokens []string, rateLimiter *rate.Limiter, next http.Handler) http.Handler {
-	authTokenMap := stringSliceToMap(authTokens)
-
+func rateLimitHandler(next http.Handler, rateLimiter *rate.Limiter) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		ctx := r.Context()
+		clientID := clientIDFromContext(ctx)
+
+		if rateLimiter == nil {
+			beeline.AddField(r.Context(), "rate_limit_result", "skipped_disabled")
+			next.ServeHTTP(w, r)
+			return
+		}
+
 		// If a known API key is provided, no rate limiting is necessary
-		authToken := authTokenFromRequest(r)
-		if _, ok := authTokenMap[authToken]; ok {
-			beeline.AddField(r.Context(), "rate_limit_result", "skipped")
+		if clientID != "" {
+			beeline.AddField(r.Context(), "rate_limit_result", "skipped_authenticated")
 			next.ServeHTTP(w, r)
 			return
 		}
 
 		if !rateLimiter.Allow() {
-			beeline.AddField(r.Context(), "rate_limit_result", "denied")
-			// sendRateLimitError(w, rateLimiter)
-			// return
-		} else {
-			beeline.AddField(r.Context(), "rate_limit_result", "allowed")
+			beeline.AddField(r.Context(), "rate_limit_result", "denied_anonymous")
+			sendRateLimitError(w, rateLimiter)
+			return
 		}
 
+		beeline.AddField(r.Context(), "rate_limit_result", "allowed_anonymous")
 		next.ServeHTTP(w, r)
 	})
-}
-
-func authTokenFromRequest(r *http.Request) string {
-	val := r.Header.Get("Authorization")
-	if val == "" {
-		return ""
-	}
-
-	if !strings.HasPrefix(strings.ToLower(val), "token ") {
-		return ""
-	}
-
-	parts := strings.Fields(val)
-	if len(parts) != 2 {
-		return ""
-	}
-
-	return parts[1]
 }
 
 func sendRateLimitError(w http.ResponseWriter, rl *rate.Limiter) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusTooManyRequests)
-	_ = json.NewEncoder(w).Encode(map[string]string{
-		"error": fmt.Sprintf("Anonymous request rate limit of %0f req/sec exceeded. Try again later.", rl.Limit()),
-	})
-}
-
-func stringSliceToMap(xs []string) map[string]struct{} {
-	m := make(map[string]struct{}, len(xs))
-	for _, k := range xs {
-		k = strings.TrimSpace(k)
-		if k != "" {
-			m[k] = struct{}{}
-		}
-	}
-	return m
+	_, _ = fmt.Fprintf(w, `{"error": "Anonymous request rate limit of %0f req/sec exceeded. Try again later."}`, rl.Limit())
 }

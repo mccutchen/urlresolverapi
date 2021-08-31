@@ -142,10 +142,9 @@ func main() {
 	}
 
 	// configure optional rate limiting
-	var rlc middleware.RateLimitConfig
+	var rl *rate.Limiter
 	if *rateLimit > 0.0 {
-		rlc.AuthTokens = strings.Split(*authTokens, ",")
-		rlc.Limiter = rate.NewLimiter(rate.Limit(*rateLimit), *burstLimit)
+		rl = rate.NewLimiter(rate.Limit(*rateLimit), *burstLimit)
 	} else {
 		logger.Info().Msg("set RATE_LIMIT to a positive number to enable rate limiting")
 	}
@@ -154,8 +153,13 @@ func main() {
 	mux.Handle("/resolve", httphandler.New(resolver))
 
 	srv := &http.Server{
+		Handler: middleware.Wrap(
+			mux,
+			strings.Split(*authTokens, ","),
+			rl,
+			logger,
+		),
 		Addr:         net.JoinHostPort("", strconv.Itoa(*port)),
-		Handler:      middleware.Wrap(mux, rlc, logger),
 		ReadTimeout:  serverReadTimeout,
 		WriteTimeout: serverWriteTimeout,
 	}

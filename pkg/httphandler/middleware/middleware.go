@@ -10,12 +10,12 @@ import (
 	"github.com/honeycombio/beeline-go/wrappers/hnynethttp"
 	ctxdata "github.com/peterbourgon/ctxdata/v4"
 	"github.com/rs/zerolog"
+	"golang.org/x/time/rate"
 )
 
-func Wrap(h http.Handler, rlc RateLimitConfig, l zerolog.Logger) http.Handler {
-	if rlc.Limiter != nil {
-		h = rateLimitHandler(rlc.AuthTokens, rlc.Limiter, h)
-	}
+func Wrap(h http.Handler, authTokens []string, rl *rate.Limiter, l zerolog.Logger) http.Handler {
+	h = rateLimitHandler(h, rl)
+	h = authHandler(h, authTokens)
 	h = panicHandler(h)
 	h = observeHandler(h, l)
 	h = hnynethttp.WrapHandler(h)

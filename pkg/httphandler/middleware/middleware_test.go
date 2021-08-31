@@ -50,7 +50,7 @@ func TestMiddleware(t *testing.T) {
 			t.Parallel()
 
 			captured := &capturingWriter{}
-			wrapped := Wrap(tc.handler, RateLimitConfig{}, zerolog.New(captured))
+			wrapped := Wrap(tc.handler, nil, nil, zerolog.New(captured))
 			srv := httptest.NewServer(wrapped)
 			defer srv.Close()
 
