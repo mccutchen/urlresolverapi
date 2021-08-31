@@ -3,10 +3,10 @@ package middleware
 import (
 	"encoding/json"
 	"fmt"
-	"log"
 	"net/http"
 	"strings"
 
+	"github.com/honeycombio/beeline-go"
 	"golang.org/x/time/rate"
 )
 
@@ -28,14 +28,17 @@ func rateLimitHandler(authTokens []string, rateLimiter *rate.Limiter, next http.
 		// If a known API key is provided, no rate limiting is necessary
 		authToken := authTokenFromRequest(r)
 		if _, ok := authTokenMap[authToken]; ok {
+			beeline.AddField(r.Context(), "rate_limit_result", "skipped")
 			next.ServeHTTP(w, r)
 			return
 		}
 
 		if !rateLimiter.Allow() {
-			log.Printf("ratelimit: dry run: would deny request from %s %#v", getRemoteAddr(r), r.Header)
+			beeline.AddField(r.Context(), "rate_limit_result", "denied")
 			// sendRateLimitError(w, rateLimiter)
 			// return
+		} else {
+			beeline.AddField(r.Context(), "rate_limit_result", "allowed")
 		}
 
 		next.ServeHTTP(w, r)
