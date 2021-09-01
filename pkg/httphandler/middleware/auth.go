@@ -92,7 +92,7 @@ func authTokenFromRequest(r *http.Request) (string, error) {
 func sendAuthError(w http.ResponseWriter) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusForbidden)
-	w.Write([]byte(`{"error": "unauthorized"}`))
+	_, _ = w.Write([]byte(`{"error": "unauthorized"}`))
 }
 
 func stringSliceToMap(xs []string) map[string]struct{} {
