@@ -36,6 +36,87 @@ at least return a normalized/canonicalized and potentially partially-resolved
 `resolved_url` value.
 
 
+## 🔒 Access control
+
+Because this server can be used to generate load on arbitrary other web sites,
+it should not be deployed without some form of authentication or rate limiting
+in place.
+
+**👉 TL;DR**:
+- The server allows both authenticated and unauthenticated requests by default
+- Rate limits are applied only to unauthenticated requests
+- To require authentication for all requests, set the rate limit to `0`
+
+### Authentication
+
+We currently support an extremely simple token-based authentication mechanism.
+Specify valid tokens as a list of comma-separated `client-id:token-value`
+pairs:
+
+```bash
+AUTH_TOKENS="client-a:abcd1234,client-a:efgh56789,client-b:1234abcd"
+```
+
+(This format allows for token rotation while keeping the client ID consistent
+for observability purposes.)
+
+Authentication information is used to determine whether or not to rate limit
+requests, and recorded in the server's instrumentation to identify known
+clients.
+
+### Rate limiting
+
+Rate limits are applied per-instance, using an in-process token bucket rate
+limiting implementation. So, if you set the rate limit to 10 req/sec and scale
+the server up to 5 instances, the effective rate limit for will be 50 req/sec.
+
+Rate limits are applied only to unauthenticated clients, and all
+unauthenticated clients share one global rate limit.
+
+
+## Configuration
+
+This server can be configured via CLI arguments or environment variables. See
+the `--help` output for all of the configurable parameters:
+
+```
+urlresolverapi --help
+Usage of urlresolverapi:
+  -auth-tokens string
+      Comma-separated list of valid auth tokens in "client-id:token-value" format for which rate limiting is disabled
+  -burst-limit int
+      Allowed bursts over rate limit (if rate limit >= 0) (default 2)
+  -cache-ttl duration
+      TTL for cached results (if caching enabled) (default 120h0m0s)
+  -client-patience duration
+      How long to wait for slow clients to write requests or read responses (default 1s)
+  -debug-port int
+      Port on which to expose pprof/expvar debugging endpoints (disabled if == 0) (default 6060)
+  -honeycomb-api-key string
+      Honeycomb API key (enables sending telemetry data to honeycomb)
+  -honeycomb-dataset string
+      Honeycomb dataset for telemetry data (default "urlresolverapi")
+  -honeycomb-sample-rate uint
+      Sample rate for telemetry data (1/N events will be submitted) (default 1)
+  -honeycomb-service-name string
+      Service name for telemetry data (default "urlresolverapi")
+  -idle-cx-ttl duration
+      TTL for idle connections (default 1m30s)
+  -max-idle-cx-per-host int
+      Max idle connections per host (default 10)
+  -port int
+      Port to listen on (default 8080)
+  -rate-limit float
+      Per-second rate limit for anonymous clients (disabled if <= 0)
+  -redis-timeout duration
+      Timeout for redis operations (if caching enabled) (default 150ms)
+  -redis-url string
+      Redis connection URL (enables caching)
+  -request-timeout duration
+      Overall timeout on a single resolve request, including any redirects (default 10s)
+```
+
+
 ## Profiling notes
 
 The app exposes Go's [expvar][] and [net/http/pprof][pprof] endpoints on port

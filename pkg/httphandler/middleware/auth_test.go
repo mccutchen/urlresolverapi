@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -11,7 +12,9 @@ import (
 func TestAuthHandler(t *testing.T) {
 	t.Parallel()
 
-	authTokens := []string{"valid-token"}
+	authMap := map[string]string{
+		"valid-token": "client-1",
+	}
 
 	testCases := map[string]struct {
 		headers      map[string]string
@@ -21,12 +24,12 @@ func TestAuthHandler(t *testing.T) {
 		"valid auth token accepted": {
 			headers:      map[string]string{"Authorization": "Token valid-token"},
 			wantStatus:   http.StatusOK,
-			wantClientID: "ab73a3eaca01a7059dcdff6f95556ec7fd83de96", // hash of "valid-token"
+			wantClientID: "client-1",
 		},
 		"auth token type is case insensitive": {
 			headers:      map[string]string{"Authorization": "tOkEn valid-token"},
 			wantStatus:   http.StatusOK,
-			wantClientID: "ab73a3eaca01a7059dcdff6f95556ec7fd83de96", // hash of "valid-token"
+			wantClientID: "client-1",
 		},
 		"invalid auth token rejected": {
 			headers:    map[string]string{"Authorization": "Token zzz-invalid-token"},
@@ -55,7 +58,7 @@ func TestAuthHandler(t *testing.T) {
 				gotClientID := clientIDFromContext(r.Context())
 				assert.Equal(t, tc.wantClientID, gotClientID)
 			})
-			srv := httptest.NewServer(authHandler(h, authTokens))
+			srv := httptest.NewServer(authHandler(h, authMap))
 
 			req, err := http.NewRequest("GET", srv.URL, nil)
 			assert.Nil(t, err)
@@ -68,4 +71,55 @@ func TestAuthHandler(t *testing.T) {
 			assert.Equal(t, tc.wantStatus, resp.StatusCode)
 		})
 	}
+}
+
+func TestParseAuthMap(t *testing.T) {
+	testCases := map[string]struct {
+		input   string
+		want    AuthMap
+		wantErr error
+	}{
+		"ok": {
+			input: "client-1:token-1,  client-1:token-2 ,   client-2 : token-3  , client-3:token-4",
+			want: AuthMap{
+				"token-1": "client-1",
+				"token-2": "client-1",
+				"token-3": "client-2",
+				"token-4": "client-3",
+			},
+		},
+		"empty ok": {
+			input: "",
+			want:  nil,
+		},
+		"duplicate tokens not allowed": {
+			input:   "client-1:token-1,client-2:token-1",
+			wantErr: errors.New("duplicate auth token value \"token-1\""),
+		},
+		"empty client ID not allowed": {
+			input:   ":token-1",
+			wantErr: errors.New("auth token \":token-1\" has empty client ID"),
+		},
+		"empty tokens not allowed": {
+			input:   "client-1:",
+			wantErr: errors.New("auth token value in \"client-1:\" cannot be empty or contain spaces"),
+		},
+		"tokens with spaces not allowed": {
+			input:   "client-1:foo bar",
+			wantErr: errors.New("auth token value in \"client-1:foo bar\" cannot be empty or contain spaces"),
+		},
+		"invalid token format": {
+			input:   "client-1/token-1",
+			wantErr: errors.New("invalid token format \"client-1/token-1\", token must be in \"client-id:token-value\" format"),
+		},
+	}
+
+	for name, tc := range testCases {
+		t.Run(name, func(t *testing.T) {
+			got, err := ParseAuthMap(tc.input)
+			assert.Equal(t, tc.wantErr, err)
+			assert.Equal(t, tc.want, got)
+		})
+	}
+
 }
