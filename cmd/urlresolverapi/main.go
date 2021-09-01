@@ -10,7 +10,6 @@ import (
 	"os"
 	"os/signal"
 	"strconv"
-	"strings"
 	"syscall"
 	"time"
 
@@ -47,10 +46,10 @@ func main() {
 	fs := flag.NewFlagSet("urlresolverapi", flag.ExitOnError)
 	var (
 		port      = fs.Int("port", 8080, "Port to listen on")
-		debugPort = fs.Int("debug-port", 6060, "Port to expose pprof/expvar debugging endpoints on")
+		debugPort = fs.Int("debug-port", 6060, "Port on which to expose pprof/expvar debugging endpoints (disabled if == 0)")
 
-		authTokens = fs.String("auth-tokens", "", "Comma-separated list of valid auth tokens for which rate limiting is disabled")
-		rateLimit  = fs.Float64("rate-limit", 0, "Per-second rate limit for anonymous clients (disabled if <= 0)")
+		authTokens = fs.String("auth-tokens", "", "Comma-separated list of valid auth tokens in \"client-id:token-value\" format for which rate limiting is disabled")
+		rateLimit  = fs.Float64("rate-limit", 10, "Per-second, per-instance rate limit for anonymous clients (use 0 to disable anonymous requests)")
 		burstLimit = fs.Int("burst-limit", 2, "Allowed bursts over rate limit (if rate limit >= 0)")
 
 		requestTimeout = fs.Duration("request-timeout", 10*time.Second, "Overall timeout on a single resolve request, including any redirects")
@@ -72,13 +71,18 @@ func main() {
 		logger.Fatal().Msgf("error parsing configuration: %s", err)
 	}
 
+	authMap, err := middleware.ParseAuthMap(*authTokens)
+	if err != nil {
+		logger.Fatal().Msgf("error parsing auth tokens: %s", err)
+	}
+
 	var (
 		shutdownTimeout    = *requestTimeout + *clientPatience
 		serverReadTimeout  = *clientPatience
 		serverWriteTimeout = shutdownTimeout
 	)
 
-	if *debugPort != 0 {
+	if *debugPort <= 0 {
 		// Use the default mux to expose expvar and pprof endpoints on an
 		// internal-only port.
 		//
@@ -141,24 +145,14 @@ func main() {
 		logger.Info().Msg("set REDIS_URL to enable caching")
 	}
 
-	// configure optional rate limiting
-	var rl *rate.Limiter
-	if *rateLimit > 0.0 {
-		rl = rate.NewLimiter(rate.Limit(*rateLimit), *burstLimit)
-	} else {
-		logger.Info().Msg("set RATE_LIMIT to a positive number to enable rate limiting")
-	}
+	// configure per-instance rate limiting
+	rl := rate.NewLimiter(rate.Limit(*rateLimit), *burstLimit)
 
 	mux := http.NewServeMux()
 	mux.Handle("/resolve", httphandler.New(resolver))
 
 	srv := &http.Server{
-		Handler: middleware.Wrap(
-			mux,
-			strings.Split(*authTokens, ","),
-			rl,
-			logger,
-		),
+		Handler:      middleware.Wrap(mux, authMap, rl, logger),
 		Addr:         net.JoinHostPort("", strconv.Itoa(*port)),
 		ReadTimeout:  serverReadTimeout,
 		WriteTimeout: serverWriteTimeout,

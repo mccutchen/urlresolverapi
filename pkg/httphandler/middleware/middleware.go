@@ -15,9 +15,9 @@ import (
 
 // Wrap wraps an http handler with middleware to add instrumentation, error
 // handling, authentication, and rate limiting.
-func Wrap(h http.Handler, authTokens []string, rl *rate.Limiter, l zerolog.Logger) http.Handler {
+func Wrap(h http.Handler, authMap AuthMap, rl *rate.Limiter, l zerolog.Logger) http.Handler {
 	h = rateLimitHandler(h, rl)
-	h = authHandler(h, authTokens)
+	h = authHandler(h, authMap)
 	h = panicHandler(h)
 	h = observeHandler(h, l)
 	h = hnynethttp.WrapHandler(h)

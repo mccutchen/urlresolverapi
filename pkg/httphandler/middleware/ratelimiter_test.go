@@ -12,7 +12,10 @@ import (
 func TestRateLimiter(t *testing.T) {
 	t.Parallel()
 
-	authTokens := []string{"valid-token"}
+	authMap := map[string]string{
+		"valid-token": "client-1",
+	}
+
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusCreated)
 	})
@@ -49,7 +52,7 @@ func TestRateLimiter(t *testing.T) {
 			srv := httptest.NewServer(
 				authHandler(
 					rateLimitHandler(handler, tc.rl),
-					authTokens,
+					authMap,
 				),
 			)
 
