@@ -100,7 +100,14 @@ func ParseAuthMap(tokenConfig string) (AuthMap, error) {
 
 	tokenDefs := strings.Split(tokenConfig, ",")
 	authMap := make(map[string]string, len(tokenDefs)) // mapping from token value to client ID
-	for _, tokenDef := range tokenDefs {
+	for idx, tokenDef := range tokenDefs {
+		// TODO: drop this backwards-compat code after migrating to new token
+		// format.
+		if !strings.Contains(tokenDef, ":") {
+			authMap[strings.TrimSpace(tokenDef)] = fmt.Sprintf("client-%d", idx)
+			continue
+		}
+
 		parts := strings.SplitN(tokenDef, ":", 2)
 		if len(parts) != 2 {
 			return nil, fmt.Errorf(`invalid token format %q, token must be in "client-id:token-value" format`, tokenDef)
