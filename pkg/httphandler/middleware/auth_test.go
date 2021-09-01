@@ -108,10 +108,21 @@ func TestParseAuthMap(t *testing.T) {
 			input:   "client-1:foo bar",
 			wantErr: errors.New("auth token value in \"client-1:foo bar\" cannot be empty or contain spaces"),
 		},
-		"invalid token format": {
-			input:   "client-1/token-1",
-			wantErr: errors.New("invalid token format \"client-1/token-1\", token must be in \"client-id:token-value\" format"),
+
+		// TODO: Drop this test case and restore the following test case once
+		// token migration is done.
+		"temporary backwards-compatible token parsing": {
+			input: "token-1,token-2,real-client:token-3",
+			want: AuthMap{
+				"token-1": "client-0",
+				"token-2": "client-1",
+				"token-3": "real-client",
+			},
 		},
+		// "invalid token format": {
+		// 	input:   "client-1/token-1",
+		// 	wantErr: errors.New("invalid token format \"client-1/token-1\", token must be in \"client-id:token-value\" format"),
+		// },
 	}
 
 	for name, tc := range testCases {
