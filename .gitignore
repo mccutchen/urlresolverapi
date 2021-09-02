@@ -1,4 +1,5 @@
 dist
+secrets.*.env
 
 # Binaries for programs and plugins
 *.exe
