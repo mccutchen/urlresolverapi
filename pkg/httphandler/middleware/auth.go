@@ -30,7 +30,7 @@ func authHandler(next http.Handler, authMap AuthMap) http.Handler {
 
 		beeline.AddField(ctx, "client_authenticated", clientID != "")
 		beeline.AddField(ctx, "client_id", clientID)
-		d.Set("client_id", clientID)
+		_ = d.Set("client_id", clientID)
 
 		r = r.WithContext(contextWithClientID(r.Context(), clientID))
 		next.ServeHTTP(w, r)
