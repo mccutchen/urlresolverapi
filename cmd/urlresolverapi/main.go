@@ -61,7 +61,7 @@ func main() {
 
 		honeycombAPIKey      = fs.String("honeycomb-api-key", "", "Honeycomb API key (enables sending telemetry data to honeycomb)")
 		honeycombDataset     = fs.String("honeycomb-dataset", "urlresolverapi", "Honeycomb dataset for telemetry data")
-		honeycombServiceName = fs.String("honeycomb-service-name", "urlresolverapi", "Service name for telemetry data") // TODO: stop relying on fly.io specifics
+		honeycombServiceName = fs.String("honeycomb-service-name", "urlresolverapi", "Service name for telemetry data")
 		honeycombSampleRate  = fs.Uint("honeycomb-sample-rate", 1, "Sample rate for telemetry data (1/N events will be submitted)")
 
 		transportIdleConnTTL         = fs.Duration("idle-cx-ttl", 90*time.Second, "TTL for idle connections")

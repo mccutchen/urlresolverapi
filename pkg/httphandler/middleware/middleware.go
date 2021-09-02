@@ -30,6 +30,7 @@ func observeHandler(next http.Handler, l zerolog.Logger) http.Handler {
 		m := httpsnoop.CaptureMetrics(next, w, r.WithContext(ctx))
 
 		rec := logRecord{
+			ClientID:   d.GetString("client_id"),
 			DurationMS: m.Duration.Milliseconds(),
 			Method:     r.Method,
 			RemoteAddr: getRemoteAddr(r),
@@ -84,6 +85,7 @@ func getRemoteAddr(r *http.Request) string {
 }
 
 type logRecord struct {
+	ClientID   string `json:"client_id"`
 	DurationMS int64  `json:"duration_ms"`
 	Method     string `json:"method"`
 	RemoteAddr string `json:"remote_addr"`
@@ -105,6 +107,7 @@ func (rec logRecord) MarshalZerologObject(e *zerolog.Event) {
 	e.Str("remote_addr", rec.RemoteAddr)
 	e.Str("url", rec.URL)
 	e.Str("user_agent", rec.UserAgent)
+	e.Str("client_id", rec.ClientID)
 	if rec.Error != "" {
 		e.Str("error", rec.Error)
 		if rec.Stack != "" {

@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/honeycombio/beeline-go"
+	"github.com/peterbourgon/ctxdata/v4"
 )
 
 // AuthMap maps from opaque token value to client ID.
@@ -14,7 +15,11 @@ type AuthMap map[string]string
 
 func authHandler(next http.Handler, authMap AuthMap) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		ctx := r.Context()
+		var (
+			ctx = r.Context()
+			d   = ctxdata.From(ctx)
+		)
+
 		clientID, err := authenticate(r, authMap)
 		if err != nil {
 			beeline.AddField(ctx, "client_authenticated", false)
@@ -25,6 +30,7 @@ func authHandler(next http.Handler, authMap AuthMap) http.Handler {
 
 		beeline.AddField(ctx, "client_authenticated", clientID != "")
 		beeline.AddField(ctx, "client_id", clientID)
+		d.Set("client_id", clientID)
 
 		r = r.WithContext(contextWithClientID(r.Context(), clientID))
 		next.ServeHTTP(w, r)
@@ -100,14 +106,7 @@ func ParseAuthMap(tokenConfig string) (AuthMap, error) {
 
 	tokenDefs := strings.Split(tokenConfig, ",")
 	authMap := make(map[string]string, len(tokenDefs)) // mapping from token value to client ID
-	for idx, tokenDef := range tokenDefs {
-		// TODO: drop this backwards-compat code after migrating to new token
-		// format.
-		if !strings.Contains(tokenDef, ":") {
-			authMap[strings.TrimSpace(tokenDef)] = fmt.Sprintf("client-%d", idx)
-			continue
-		}
-
+	for _, tokenDef := range tokenDefs {
 		parts := strings.SplitN(tokenDef, ":", 2)
 		if len(parts) != 2 {
 			return nil, fmt.Errorf(`invalid token format %q, token must be in "client-id:token-value" format`, tokenDef)
