@@ -11,18 +11,26 @@ query parameters, and attempting to fetch its title.
 It is used by [Thresholderbot][] to resolve URLs found in tweets, which tend to
 be wrapped in one or more URL shorteners (t.co, bit.ly, etc).
 
+A publicly-available instance is available at https://api.urlresolver.com,
+(deployed on [fly.io](https://fly.io)).
+
 ## API
 
 There is a single API endpoint, `/resolve`, seen here resolving a t.co URL that redirects a
 few times before ending up at the New York Times:
 
 ```
-GET /resolve?url=https://t.co/1AuEh8FMK0?amp=1
+GET https://api.urlresolver.com/resolve?url=https://t.co/1AuEh8FMK0?amp=1
 
 {
   "given_url": "https://t.co/1AuEh8FMK0?amp=1",
   "resolved_url": "https://www.nytimes.com/2021/08/25/style/lil-nas-x.html",
-  "title": "Some Said Lil Nas X Was a One-Hit Wonder. They Were Wrong. - The New York Times"
+  "title": "Some Said Lil Nas X Was a One-Hit Wonder. They Were Wrong. - The New York Times",
+  "intermediate_urls": [
+    "https://t.co/1AuEh8FMK0?amp=1",
+    "https://nyti.ms/3BlpRIR",
+    "https://trib.al/4OR3gtI"
+  ]
 }
 ```
 

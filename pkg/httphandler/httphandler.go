@@ -38,6 +38,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/honeycombio/beeline-go"
 	"github.com/peterbourgon/ctxdata/v4"
 
 	"github.com/mccutchen/urlresolver"
@@ -61,10 +62,11 @@ const (
 
 // ResolveResponse defines the HTTP handler's response structure.
 type ResolveResponse struct {
-	GivenURL    string `json:"given_url"`
-	ResolvedURL string `json:"resolved_url"`
-	Title       string `json:"title"`
-	Error       string `json:"error,omitempty"`
+	GivenURL         string   `json:"given_url"`
+	ResolvedURL      string   `json:"resolved_url"`
+	Title            string   `json:"title"`
+	IntermediateURLs []string `json:"intermediate_urls"`
+	Error            string   `json:"error,omitempty"`
 }
 
 // New creates a new Handler.
@@ -110,8 +112,16 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		ResolvedURL: result.ResolvedURL,
 		Title:       result.Title,
 	}
-	code := http.StatusOK
+	// ensure our API response includes an empty list once encoded as JSON when
+	// result.IntermediateURLs is nil
+	if result.IntermediateURLs != nil {
+		resp.IntermediateURLs = result.IntermediateURLs
+	} else {
+		resp.IntermediateURLs = []string{}
+	}
+	beeline.AddField(ctx, "intermediate_url_count", len(resp.IntermediateURLs))
 
+	code := http.StatusOK
 	if err != nil {
 		d := ctxdata.From(r.Context())
 
