@@ -168,7 +168,9 @@ func sendJSON(w http.ResponseWriter, code int, data interface{}) {
 	w.Header().Set("Content-Type", "application/json")
 	w.Header().Set("Cache-Control", cacheControlValue(code))
 	w.WriteHeader(code)
-	_ = json.NewEncoder(w).Encode(data)
+	enc := json.NewEncoder(w)
+	enc.SetIndent("", "  ")
+	_ = enc.Encode(data)
 }
 
 func sendError(w http.ResponseWriter, msg string, code int) {
