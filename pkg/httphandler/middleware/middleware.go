@@ -16,6 +16,7 @@ import (
 // Wrap wraps an http handler with middleware to add instrumentation, error
 // handling, authentication, and rate limiting.
 func Wrap(h http.Handler, authMap AuthMap, rl *rate.Limiter, l zerolog.Logger) http.Handler {
+	h = corsHandler(h)
 	h = rateLimitHandler(h, rl)
 	h = authHandler(h, authMap)
 	h = panicHandler(h)
