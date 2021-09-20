@@ -14,6 +14,7 @@ jobs:
     strategy:
       matrix:
         go-version:
+        - '1.17'
         - '1.16'
         - '1.15'
 
@@ -53,4 +54,4 @@ jobs:
       uses: codecov/codecov-action@v1
       with:
         file: ./coverage.out
-      if: ${{ matrix.go-version == '1.16' }}
+      if: ${{ matrix.go-version == '1.17' }}
