@@ -24,6 +24,7 @@ import (
 	"github.com/mccutchen/urlresolver/fakebrowser"
 	"github.com/mccutchen/urlresolver/safedialer"
 	"github.com/mccutchen/urlresolverapi/pkg/cachedresolver"
+	"github.com/mccutchen/urlresolverapi/pkg/coalesced"
 	"github.com/mccutchen/urlresolverapi/pkg/httphandler"
 	"github.com/mccutchen/urlresolverapi/pkg/httphandler/middleware"
 	"github.com/mccutchen/urlresolverapi/pkg/tracetransport"
@@ -144,6 +145,10 @@ func main() {
 	} else {
 		logger.Info().Msg("set REDIS_URL to enable caching")
 	}
+
+	// ensure that concurrent requests are coalesced, regardless of whether
+	// they're cached or not
+	resolver = coalesced.New(resolver)
 
 	// configure per-instance rate limiting
 	rl := rate.NewLimiter(rate.Limit(*rateLimit), *burstLimit)
