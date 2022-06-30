@@ -1,4 +1,4 @@
-package cachedresolver
+package cached
 
 import (
 	"context"
