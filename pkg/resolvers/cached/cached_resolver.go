@@ -1,4 +1,4 @@
-package cachedresolver
+package cached
 
 import (
 	"context"
@@ -8,22 +8,22 @@ import (
 	"github.com/mccutchen/urlresolver"
 )
 
-// CachedResolver is a Resolver implementation that caches its results.
-type CachedResolver struct {
+// Resolver is a Resolver implementation that caches its results.
+type Resolver struct {
 	cache    Cache
 	resolver urlresolver.Interface
 }
 
-// NewCachedResolver creates a new CachedResolver.
-func NewCachedResolver(resolver urlresolver.Interface, cache Cache) *CachedResolver {
-	return &CachedResolver{
+// NewResolver creates a new cached Resolver.
+func NewResolver(resolver urlresolver.Interface, cache Cache) *Resolver {
+	return &Resolver{
 		cache:    cache,
 		resolver: resolver,
 	}
 }
 
 // Resolve resolves a URL if it is not already cached.
-func (c *CachedResolver) Resolve(ctx context.Context, url string) (urlresolver.Result, error) {
+func (c *Resolver) Resolve(ctx context.Context, url string) (urlresolver.Result, error) {
 	beeline.AddField(ctx, "resolver.cache_name", c.cache.Name())
 
 	if result, ok := c.cache.Get(ctx, url); ok {

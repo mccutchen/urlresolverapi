@@ -1,5 +1,5 @@
 //nolint:errcheck
-package cachedresolver
+package cached
 
 import (
 	"context"
@@ -35,7 +35,7 @@ func TestCachedResolver(t *testing.T) {
 	redisClient := redis.NewClient(&redis.Options{Addr: redisSrv.Addr()})
 	redisCache := cache.New(&cache.Options{Redis: redisClient})
 
-	resolver := NewCachedResolver(
+	resolver := NewResolver(
 		urlresolver.New(http.DefaultTransport, 0),
 		NewRedisCache(redisCache, 10*time.Minute),
 	)

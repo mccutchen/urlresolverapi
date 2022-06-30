@@ -23,10 +23,10 @@ import (
 	"github.com/mccutchen/urlresolver"
 	"github.com/mccutchen/urlresolver/fakebrowser"
 	"github.com/mccutchen/urlresolver/safedialer"
-	"github.com/mccutchen/urlresolverapi/pkg/cachedresolver"
-	"github.com/mccutchen/urlresolverapi/pkg/coalesced"
 	"github.com/mccutchen/urlresolverapi/pkg/httphandler"
 	"github.com/mccutchen/urlresolverapi/pkg/httphandler/middleware"
+	"github.com/mccutchen/urlresolverapi/pkg/resolvers/cached"
+	"github.com/mccutchen/urlresolverapi/pkg/resolvers/coalesced"
 	"github.com/mccutchen/urlresolverapi/pkg/tracetransport"
 )
 
@@ -138,7 +138,7 @@ func main() {
 			opt.ReadTimeout = *redisTimeout
 			opt.WriteTimeout = *redisTimeout
 			redisCache := cache.New(&cache.Options{Redis: redis.NewClient(opt)})
-			resolver = cachedresolver.NewCachedResolver(resolver, cachedresolver.NewRedisCache(redisCache, *cacheTTL))
+			resolver = cached.NewResolver(resolver, cached.NewRedisCache(redisCache, *cacheTTL))
 		} else {
 			logger.Error().Err(err).Msg("REDIS_URL invalid, cache disabled")
 		}
