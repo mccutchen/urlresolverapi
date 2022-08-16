@@ -148,7 +148,7 @@ $ dig +short aaaa urlresolverapi-production.internal
 fdaa:0:2530:a7b:ab2:5f9e:d6b1:2
 fdaa:0:2530:a7b:ab3:97d6:9ae8:2
 
-$ go tool pprof '[fdaa:0:2530:a7b:ab2:5f9e:d6b1:2]:6060/debug/pprof/allocs'
+$ go tool pprof "[$(dig +short aaaa urlresolverapi-production.internal | sort | head -1)]:6060/debug/pprof/allocs"
 ```
 
 
