@@ -83,7 +83,7 @@ func main() {
 		serverWriteTimeout = shutdownTimeout
 	)
 
-	if *debugPort <= 0 {
+	if *debugPort >= 0 {
 		// Use the default mux to expose expvar and pprof endpoints on an
 		// internal-only port.
 		//

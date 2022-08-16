@@ -137,14 +137,14 @@ With that VPN enabled, you can now access the internal endpoints by hostname
 (which will connect to 1/N instances of the app):
 
 ```
-go tool pprof appname.internal:6060/debug/pprof/allocs
+go tool pprof urlresolverapi-production.internal:6060/debug/pprof/allocs
 ```
 
 Or you can connect to a specific instance by first getting its private IPv6
 address and then connecting directly to it:
 
 ```
-$ dig +short aaaa appname.internal
+$ dig +short aaaa urlresolverapi-production.internal
 fdaa:0:2530:a7b:ab2:5f9e:d6b1:2
 fdaa:0:2530:a7b:ab3:97d6:9ae8:2
 
@@ -159,4 +159,4 @@ $ go tool pprof '[fdaa:0:2530:a7b:ab2:5f9e:d6b1:2]:6060/debug/pprof/allocs'
 [expvar]: https://golang.org/pkg/expvar/
 [pprof]: https://golang.org/pkg/net/http/pprof/
 [fly.io]: https://fly.io/
-[vpn]: https://fly.io/docs/reference/privatenetwork/#private-network-vpn
+[vpn]: https://fly.io/docs/reference/private-networking/#private-network-vpn
