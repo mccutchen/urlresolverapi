@@ -1,1 +1,6 @@
+.codecov.yaml
+.github
+.vscode
+*.env
 dist
+fly.toml
