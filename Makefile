@@ -6,7 +6,7 @@ FLY_CMD := ./bin/flyctl $(env)
 
 # Built binaries will be placed here
 DIST_PATH	?= dist
-BUILD_ARGS	?= -ldflags="-s -w"
+BUILD_ARGS	?= -ldflags="-s -w" -trimpath
 
 # Default flags used by the test, testci, testcover targets
 COVERAGE_PATH ?= coverage.out
