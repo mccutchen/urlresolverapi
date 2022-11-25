@@ -5,10 +5,10 @@ go 1.19
 require (
 	github.com/alicebob/miniredis/v2 v2.14.3
 	github.com/felixge/httpsnoop v1.0.3
-	github.com/go-redis/cache/v8 v8.4.3
+	github.com/go-redis/cache/v8 v8.4.4
 	github.com/go-redis/redis/v8 v8.11.5
 	github.com/honeycombio/beeline-go v1.11.1
-	github.com/mccutchen/urlresolver v0.1.2
+	github.com/mccutchen/urlresolver v0.1.3
 	github.com/peterbourgon/ctxdata/v4 v4.0.0
 	github.com/peterbourgon/ff/v3 v3.3.0
 	github.com/rs/zerolog v1.28.0
@@ -35,11 +35,10 @@ require (
 	github.com/vmihailenco/msgpack/v5 v5.3.5 // indirect
 	github.com/vmihailenco/tagparser/v2 v2.0.0 // indirect
 	github.com/yuin/gopher-lua v0.0.0-20200816102855-ee81675732da // indirect
-	golang.org/x/exp v0.0.0-20221111204811-129d8d6c17ab // indirect
 	golang.org/x/net v0.2.0 // indirect
 	golang.org/x/sys v0.2.0 // indirect
 	golang.org/x/text v0.4.0 // indirect
-	google.golang.org/grpc v1.50.1 // indirect
+	google.golang.org/grpc v1.51.0 // indirect
 	gopkg.in/alexcesaro/statsd.v2 v2.0.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
