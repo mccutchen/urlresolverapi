@@ -4,7 +4,7 @@ package httphandler
 import (
 	"context"
 	"encoding/json"
-	"io/ioutil"
+	"io"
 	"net"
 	"net/http"
 	"net/http/httptest"
@@ -303,7 +303,7 @@ func TestResolve(t *testing.T) {
 				assert.Equal(t, wantValue, resp.Header.Get(key), "incorrect value for header key %q", key)
 			}
 
-			body, err := ioutil.ReadAll(resp.Body)
+			body, err := io.ReadAll(resp.Body)
 			assert.NoError(t, err)
 
 			var result ResolveResponse
