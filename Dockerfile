@@ -10,7 +10,7 @@ RUN --mount=type=cache,id=gomod,target=/go/pkg/mod \
 COPY . .
 RUN --mount=type=cache,id=gomod,target=/go/pkg/mod \
     --mount=type=cache,id=gobuild,target=/root/.cache/go-build \
-    BUILD_ARGS='-mod=readonly -ldflags="-s -w"' \
+    BUILD_ARGS='-mod=readonly -ldflags="-s -w" -buildvcs=false' \
     DIST_PATH=/bin \
     make
 
