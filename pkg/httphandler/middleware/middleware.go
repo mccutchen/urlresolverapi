@@ -44,7 +44,7 @@ func observeHandler(next http.Handler, l zerolog.Logger) http.Handler {
 			rec.Error = err.Error()
 			beeline.AddField(ctx, "error", err)
 			// stack might be added by panicHandler
-			if stack := d.GetString("stack"); err != nil {
+			if stack := d.GetString("stack"); stack != "" {
 				rec.Stack = stack
 				beeline.AddField(ctx, "stack", stack)
 			}
