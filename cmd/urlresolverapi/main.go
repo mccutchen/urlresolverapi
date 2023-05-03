@@ -35,8 +35,7 @@ func main() {
 
 	// Rewrite some platform-specific env vars before parsing configuration
 	envRewrites := map[string]string{
-		"FLY_REDIS_CACHE_URL": "REDIS_URL",
-		"FLY_APP_NAME":        "HONEYCOMB_SERVICE_NAME",
+		"FLY_APP_NAME": "HONEYCOMB_SERVICE_NAME",
 	}
 	for srcKey, dstKey := range envRewrites {
 		if os.Getenv(srcKey) != "" && os.Getenv(dstKey) == "" {
