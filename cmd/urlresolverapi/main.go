@@ -154,6 +154,9 @@ func main() {
 
 	mux := http.NewServeMux()
 	mux.Handle("/resolve", httphandler.New(resolver))
+	mux.HandleFunc("/healthz", func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	})
 
 	srv := &http.Server{
 		Handler:      middleware.Wrap(mux, authMap, rl, logger),
