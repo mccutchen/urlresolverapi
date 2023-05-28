@@ -95,7 +95,7 @@ rundocker: buildimage
 # deploy to fly.io
 # =============================================================================
 deploy:
-	$(FLY_CMD) deploy --strategy=bluegreen $(shell ./bin/env-to-fly < fly.$(env).env)
+	$(FLY_CMD) deploy --strategy=rolling $(shell ./bin/env-to-fly < fly.$(env).env)
 .PHONY: deploy
 
 authtoken:
