@@ -8,12 +8,12 @@ require (
 	github.com/go-redis/cache/v8 v8.4.4
 	github.com/go-redis/redis/v8 v8.11.5
 	github.com/honeycombio/beeline-go v1.11.1
-	github.com/mccutchen/urlresolver v0.1.4
+	github.com/mccutchen/urlresolver v0.1.5
 	github.com/peterbourgon/ctxdata/v4 v4.0.0
 	github.com/peterbourgon/ff/v3 v3.3.0
 	github.com/rs/zerolog v1.29.1
 	github.com/stretchr/testify v1.8.0
-	golang.org/x/sync v0.1.0
+	golang.org/x/sync v0.2.0
 	golang.org/x/time v0.3.0
 )
 
@@ -35,10 +35,15 @@ require (
 	github.com/vmihailenco/msgpack/v5 v5.3.5 // indirect
 	github.com/vmihailenco/tagparser/v2 v2.0.0 // indirect
 	github.com/yuin/gopher-lua v0.0.0-20200816102855-ee81675732da // indirect
-	golang.org/x/net v0.9.0 // indirect
-	golang.org/x/sys v0.7.0 // indirect
+	golang.org/x/net v0.10.0 // indirect
+	golang.org/x/sys v0.8.0 // indirect
 	golang.org/x/text v0.9.0 // indirect
 	google.golang.org/grpc v1.54.0 // indirect
 	gopkg.in/alexcesaro/statsd.v2 v2.0.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
+
+// Uncomment for local development (TODO: figure out how to use the new
+// "workspaces" functionality for this?)
+//
+// replace github.com/mccutchen/urlresol ver => ../urlresolver
