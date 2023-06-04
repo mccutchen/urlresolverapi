@@ -17,8 +17,11 @@ var (
 
 func rateLimitHandler(next http.Handler, rateLimiter *rate.Limiter) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		ctx := r.Context()
+		ctx, span := beeline.StartSpan(r.Context(), "httphandler.middleware.rateLimitHandler")
+		defer span.Send()
+
 		clientID := clientIDFromContext(ctx)
+		r = r.WithContext(ctx)
 
 		if rateLimiter == nil {
 			beeline.AddField(r.Context(), "rate_limit_result", "skipped_disabled")

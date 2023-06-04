@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 	"runtime"
+	"sync/atomic"
 
 	"github.com/felixge/httpsnoop"
 	"github.com/honeycombio/beeline-go"
@@ -26,8 +27,16 @@ func Wrap(h http.Handler, authMap AuthMap, rl *rate.Limiter, l zerolog.Logger) h
 }
 
 func observeHandler(next http.Handler, l zerolog.Logger) http.Handler {
+	concurrentRequests := &atomic.Int64{}
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		ctx, d := ctxdata.New(r.Context())
+		ctx, span := beeline.StartSpan(r.Context(), "httphandler.middleware.observeHandler")
+		defer span.Send()
+
+		inflight := concurrentRequests.Add(1)
+		defer concurrentRequests.Add(-1)
+		beeline.AddField(ctx, "concurrent_requests", inflight)
+
+		ctx, d := ctxdata.New(ctx)
 		m := httpsnoop.CaptureMetrics(next, w, r.WithContext(ctx))
 
 		rec := logRecord{
@@ -59,6 +68,9 @@ func observeHandler(next http.Handler, l zerolog.Logger) http.Handler {
 
 func panicHandler(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		ctx, span := beeline.StartSpan(r.Context(), "httphandler.middleware.panicHandler")
+		defer span.Send()
+
 		defer func() {
 			if p := recover(); p != nil {
 
@@ -73,7 +85,7 @@ func panicHandler(next http.Handler) http.Handler {
 				w.WriteHeader(http.StatusInternalServerError)
 			}
 		}()
-		next.ServeHTTP(w, r)
+		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }
 

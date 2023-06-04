@@ -83,7 +83,9 @@ type Handler struct {
 var _ http.Handler = &Handler{} // Handler implements http.Handler
 
 func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
+	ctx, span := beeline.StartSpan(r.Context(), "httphandler.servehttp")
+	defer span.Send()
+
 	d := ctxdata.From(ctx)
 
 	givenURL := r.URL.Query().Get("url")

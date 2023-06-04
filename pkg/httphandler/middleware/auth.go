@@ -7,7 +7,7 @@ import (
 	"strings"
 
 	"github.com/honeycombio/beeline-go"
-	"github.com/peterbourgon/ctxdata/v4"
+	ctxdata "github.com/peterbourgon/ctxdata/v4"
 )
 
 // AuthMap maps from opaque token value to client ID.
@@ -15,10 +15,8 @@ type AuthMap map[string]string
 
 func authHandler(next http.Handler, authMap AuthMap) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		var (
-			ctx = r.Context()
-			d   = ctxdata.From(ctx)
-		)
+		ctx, span := beeline.StartSpan(r.Context(), "httphandler.middleware.authHandler")
+		defer span.Send()
 
 		clientID, err := authenticate(r, authMap)
 		if err != nil {
@@ -30,7 +28,7 @@ func authHandler(next http.Handler, authMap AuthMap) http.Handler {
 
 		beeline.AddField(ctx, "client_authenticated", clientID != "")
 		beeline.AddField(ctx, "client_id", clientID)
-		_ = d.Set("client_id", clientID)
+		_ = ctxdata.From(ctx).Set("client_id", clientID)
 
 		r = r.WithContext(contextWithClientID(r.Context(), clientID))
 		next.ServeHTTP(w, r)

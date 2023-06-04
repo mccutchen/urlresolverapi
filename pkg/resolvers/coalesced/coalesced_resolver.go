@@ -27,6 +27,9 @@ func New(resolver urlresolver.Interface) *Resolver {
 
 // Resolve resolves a URL if it is not already cached.
 func (c *Resolver) Resolve(ctx context.Context, givenURL string) (urlresolver.Result, error) {
+	ctx, span := beeline.StartSpan(ctx, "coalesced_resolver.resolve")
+	defer span.Send()
+
 	// A bit wasteful to canonicalize the URL here since the wrapped resolver
 	// will do the same thing, but it should slightly improve our chances of
 	// coalescing requests.
