@@ -1,6 +1,8 @@
 module github.com/mccutchen/urlresolverapi
 
-go 1.19
+go 1.21
+
+toolchain go1.21.5
 
 require (
 	github.com/alicebob/miniredis/v2 v2.14.3
@@ -9,17 +11,17 @@ require (
 	github.com/go-redis/redis/v8 v8.11.5
 	github.com/honeycombio/beeline-go v1.11.1
 	github.com/mccutchen/safedialer v0.1.0
-	github.com/mccutchen/urlresolver v0.1.6
+	github.com/mccutchen/urlresolver v0.2.0
 	github.com/peterbourgon/ctxdata/v4 v4.0.0
 	github.com/peterbourgon/ff/v3 v3.3.0
 	github.com/rs/zerolog v1.29.1
 	github.com/stretchr/testify v1.8.0
-	golang.org/x/sync v0.2.0
+	golang.org/x/sync v0.6.0
 	golang.org/x/time v0.3.0
 )
 
 require (
-	github.com/PuerkitoBio/purell v1.2.0 // indirect
+	github.com/PuerkitoBio/purell v1.2.1 // indirect
 	github.com/alicebob/gopher-json v0.0.0-20200520072559-a9ecdc9d1d3a // indirect
 	github.com/cespare/xxhash/v2 v2.2.0 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
@@ -36,9 +38,9 @@ require (
 	github.com/vmihailenco/msgpack/v5 v5.3.5 // indirect
 	github.com/vmihailenco/tagparser/v2 v2.0.0 // indirect
 	github.com/yuin/gopher-lua v0.0.0-20200816102855-ee81675732da // indirect
-	golang.org/x/net v0.17.0 // indirect
-	golang.org/x/sys v0.13.0 // indirect
-	golang.org/x/text v0.13.0 // indirect
+	golang.org/x/net v0.20.0 // indirect
+	golang.org/x/sys v0.16.0 // indirect
+	golang.org/x/text v0.14.0 // indirect
 	google.golang.org/grpc v1.56.3 // indirect
 	gopkg.in/alexcesaro/statsd.v2 v2.0.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
