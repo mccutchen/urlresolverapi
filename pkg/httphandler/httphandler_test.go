@@ -15,8 +15,8 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
+	"github.com/mccutchen/safedialer"
 	"github.com/mccutchen/urlresolver"
-	"github.com/mccutchen/urlresolver/safedialer"
 	"github.com/mccutchen/urlresolverapi/pkg/tracetransport"
 )
 

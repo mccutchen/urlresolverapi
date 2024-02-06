@@ -8,6 +8,7 @@ require (
 	github.com/go-redis/cache/v8 v8.4.4
 	github.com/go-redis/redis/v8 v8.11.5
 	github.com/honeycombio/beeline-go v1.11.1
+	github.com/mccutchen/safedialer v0.1.0
 	github.com/mccutchen/urlresolver v0.1.6
 	github.com/peterbourgon/ctxdata/v4 v4.0.0
 	github.com/peterbourgon/ff/v3 v3.3.0

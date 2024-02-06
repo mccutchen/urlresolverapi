@@ -40,8 +40,8 @@ import (
 	"github.com/honeycombio/beeline-go"
 	"github.com/peterbourgon/ctxdata/v4"
 
+	"github.com/mccutchen/safedialer"
 	"github.com/mccutchen/urlresolver"
-	"github.com/mccutchen/urlresolver/safedialer"
 )
 
 // Errors that might be returned by the HTTP handler.

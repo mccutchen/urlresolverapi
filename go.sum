@@ -84,6 +84,8 @@ github.com/mattn/go-isatty v0.0.14/go.mod h1:7GGIvUiUoEMVVmxf/4nioHXj79iQHKdU27k
 github.com/mattn/go-isatty v0.0.16/go.mod h1:kYGgaQfpe5nmfYZH+SKPsOc2e4SrIfOl2e/yFXSvRLM=
 github.com/mattn/go-isatty v0.0.18 h1:DOKFKCQ7FNG2L1rbrmstDN4QVRdS89Nkh85u68Uwp98=
 github.com/mattn/go-isatty v0.0.18/go.mod h1:W+V8PltTTMOvKvAeJH7IuucS94S2C6jfK/D7dTCTo3Y=
+github.com/mccutchen/safedialer v0.1.0 h1:8mNaHGGHLZw95hDviDebmfYMntr2vRLN2HZdlzhdw4s=
+github.com/mccutchen/safedialer v0.1.0/go.mod h1:zSJV0TN1pTcON9/empninx2COU+Wj0kDS5LSp2P6zRQ=
 github.com/mccutchen/urlresolver v0.1.6 h1:xW4aj72TjiWXARkTrBSwCxs3bsDpNIt6Cgi0WuXKaIA=
 github.com/mccutchen/urlresolver v0.1.6/go.mod h1:sgMIvQGqo5Ky/1fFDpPUEKa5bnN/y8BqUbl0C0eySGE=
 github.com/nxadm/tail v1.4.4/go.mod h1:kenIhsEOeOJmVchQTgglprH7qJGnHDVpk1VPCcaMI8A=

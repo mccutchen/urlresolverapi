@@ -20,9 +20,9 @@ import (
 	"github.com/rs/zerolog"
 	"golang.org/x/time/rate"
 
+	"github.com/mccutchen/safedialer"
 	"github.com/mccutchen/urlresolver"
 	"github.com/mccutchen/urlresolver/fakebrowser"
-	"github.com/mccutchen/urlresolver/safedialer"
 	"github.com/mccutchen/urlresolverapi/pkg/httphandler"
 	"github.com/mccutchen/urlresolverapi/pkg/httphandler/middleware"
 	"github.com/mccutchen/urlresolverapi/pkg/resolvers/cached"
