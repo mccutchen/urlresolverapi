@@ -2,8 +2,6 @@ module github.com/mccutchen/urlresolverapi
 
 go 1.21
 
-toolchain go1.21.5
-
 require (
 	github.com/alicebob/miniredis/v2 v2.14.3
 	github.com/felixge/httpsnoop v1.0.3
