@@ -1,8 +1,6 @@
 module github.com/mccutchen/urlresolverapi
 
-go 1.22
-
-toolchain go1.23.0
+go 1.23.0
 
 require (
 	github.com/alicebob/miniredis/v2 v2.14.3
@@ -15,9 +13,9 @@ require (
 	github.com/peterbourgon/ctxdata/v4 v4.0.0
 	github.com/peterbourgon/ff/v3 v3.4.0
 	github.com/rs/zerolog v1.33.0
-	github.com/stretchr/testify v1.9.0
-	golang.org/x/sync v0.10.0
-	golang.org/x/time v0.8.0
+	github.com/stretchr/testify v1.10.0
+	golang.org/x/sync v0.12.0
+	golang.org/x/time v0.11.0
 )
 
 require (
@@ -29,19 +27,19 @@ require (
 	github.com/facebookgo/clock v0.0.0-20150410010913-600d898af40a // indirect
 	github.com/facebookgo/limitgroup v0.0.0-20150612190941-6abd8d71ec01 // indirect
 	github.com/facebookgo/muster v0.0.0-20150708232844-fd3d7953fd52 // indirect
-	github.com/honeycombio/libhoney-go v1.24.0 // indirect
-	github.com/klauspost/compress v1.17.11 // indirect
-	github.com/mattn/go-colorable v0.1.13 // indirect
+	github.com/honeycombio/libhoney-go v1.25.0 // indirect
+	github.com/klauspost/compress v1.18.0 // indirect
+	github.com/mattn/go-colorable v0.1.14 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/vmihailenco/go-tinylfu v0.2.2 // indirect
 	github.com/vmihailenco/msgpack/v5 v5.4.1 // indirect
 	github.com/vmihailenco/tagparser/v2 v2.0.0 // indirect
 	github.com/yuin/gopher-lua v0.0.0-20200816102855-ee81675732da // indirect
-	golang.org/x/net v0.33.0 // indirect
-	golang.org/x/sys v0.28.0 // indirect
-	golang.org/x/text v0.21.0 // indirect
-	google.golang.org/grpc v1.69.2 // indirect
+	golang.org/x/net v0.37.0 // indirect
+	golang.org/x/sys v0.31.0 // indirect
+	golang.org/x/text v0.23.0 // indirect
+	google.golang.org/grpc v1.71.0 // indirect
 	gopkg.in/alexcesaro/statsd.v2 v2.0.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
