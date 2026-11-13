@@ -22,11 +22,8 @@ jobs:
 
     strategy:
       matrix:
-        # build against the two latest releases, to match golang's release
-        # policy: https://go.dev/doc/devel/release#policy
         go-version:
         - 'stable'
-        - 'oldstable'
 
     steps:
     - name: setup

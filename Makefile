@@ -15,8 +15,8 @@ TEST_ARGS     ?= -race
 
 # 3rd party tools
 GOLINT      := go run golang.org/x/lint/golint@latest
-REFLEX      := go run github.com/cespare/reflex@v0.3.1
-STATICCHECK := go run honnef.co/go/tools/cmd/staticcheck@2023.1.3
+REFLEX      := go run github.com/cespare/reflex@latest
+STATICCHECK := go run honnef.co/go/tools/cmd/staticcheck@latest
 
 # Extract golangci-lint version from GitHub actions workflow
 GOLANGCI_LINT_VERSION ?= $(shell grep -A2 'uses: golangci/golangci-lint-action' .github/workflows/lint.yaml  | grep version: | awk '{print $$NF}')

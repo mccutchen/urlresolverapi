@@ -39,7 +39,7 @@ func main() {
 	}
 	for srcKey, dstKey := range envRewrites {
 		if os.Getenv(srcKey) != "" && os.Getenv(dstKey) == "" {
-			os.Setenv(dstKey, os.Getenv(srcKey))
+			_ = os.Setenv(dstKey, os.Getenv(srcKey))
 		}
 	}
 
